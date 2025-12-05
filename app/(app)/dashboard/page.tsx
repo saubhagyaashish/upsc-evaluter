@@ -108,66 +108,66 @@ export default function DashboardPage() {
     return (
         <div>
             {/* Welcome Section */}
-            <div className="mb-8">
-                <h1 className="text-4xl font-bold text-white mb-2">
+            <div className="mb-6 md:mb-8">
+                <h1 className="text-2xl md:text-4xl font-bold text-white mb-2">
                     Welcome back, {userName}! 👋
                 </h1>
-                <p className="text-slate-300">
+                <p className="text-sm md:text-base text-slate-300">
                     Track your progress and improve your UPSC answer writing skills
                 </p>
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <Card className="p-6 bg-gradient-to-br from-blue-600 to-blue-800 border-none">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+                <Card className="p-4 md:p-6 bg-gradient-to-br from-blue-600 to-blue-800 border-none">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-blue-200 text-sm mb-1">Total Answers</p>
-                            <p className="text-4xl font-bold text-white">{stats?.totalAnswers || 0}</p>
+                            <p className="text-blue-200 text-xs md:text-sm mb-1">Total Answers</p>
+                            <p className="text-3xl md:text-4xl font-bold text-white">{stats?.totalAnswers || 0}</p>
                         </div>
-                        <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                            <FileText className="w-6 h-6 text-white" />
+                        <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-full flex items-center justify-center">
+                            <FileText className="w-5 h-5 md:w-6 md:h-6 text-white" />
                         </div>
                     </div>
                 </Card>
 
-                <Card className="p-6 bg-gradient-to-br from-cyan-600 to-cyan-800 border-none">
+                <Card className="p-4 md:p-6 bg-gradient-to-br from-cyan-600 to-cyan-800 border-none">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-cyan-200 text-sm mb-1">Average Score</p>
-                            <p className="text-4xl font-bold text-white">{stats?.averageScore || 0}/10</p>
+                            <p className="text-cyan-200 text-xs md:text-sm mb-1">Average Score</p>
+                            <p className="text-3xl md:text-4xl font-bold text-white">{stats?.averageScore || 0}/10</p>
                         </div>
-                        <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                            <Award className="w-6 h-6 text-white" />
+                        <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-full flex items-center justify-center">
+                            <Award className="w-5 h-5 md:w-6 md:h-6 text-white" />
                         </div>
                     </div>
                 </Card>
 
-                <Card className="p-6 bg-gradient-to-br from-indigo-600 to-indigo-800 border-none">
+                <Card className="p-4 md:p-6 bg-gradient-to-br from-indigo-600 to-indigo-800 border-none">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-indigo-200 text-sm mb-1">Last Score</p>
-                            <p className="text-4xl font-bold text-white">{stats?.lastScore || 0}/10</p>
+                            <p className="text-indigo-200 text-xs md:text-sm mb-1">Last Score</p>
+                            <p className="text-3xl md:text-4xl font-bold text-white">{stats?.lastScore || 0}/10</p>
                         </div>
-                        <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                            <TrendingUp className="w-6 h-6 text-white" />
+                        <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-full flex items-center justify-center">
+                            <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-white" />
                         </div>
                     </div>
                 </Card>
             </div>
 
             {/* Quick Action */}
-            <Card className="p-8 bg-gradient-to-r from-blue-600 to-cyan-600 border-none mb-8">
-                <div className="flex items-center justify-between">
+            <Card className="p-4 md:p-8 bg-gradient-to-r from-blue-600 to-cyan-600 border-none mb-6 md:mb-8">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:justify-between">
                     <div>
-                        <h3 className="text-2xl font-bold text-white mb-2">Ready to practice?</h3>
-                        <p className="text-purple-100">
+                        <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Ready to practice?</h3>
+                        <p className="text-sm md:text-base text-purple-100">
                             Upload a new answer and get instant AI-powered feedback
                         </p>
                     </div>
                     <Button
                         onClick={() => router.push('/upload')}
-                        className="bg-white text-blue-600 hover:bg-purple-50 font-semibold px-8 py-6 text-lg"
+                        className="w-full sm:w-auto bg-white text-blue-600 hover:bg-purple-50 font-semibold px-6 md:px-8 py-4 md:py-6 text-base md:text-lg"
                     >
                         <Upload className="w-5 h-5 mr-2" />
                         Upload Answer
@@ -178,8 +178,8 @@ export default function DashboardPage() {
             {/* Recent Answers */}
             {stats && stats.recentAnswers.length > 0 && (
                 <div>
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-bold text-white">Recent Answers</h2>
+                    <div className="flex items-center justify-between mb-4 md:mb-6">
+                        <h2 className="text-xl md:text-2xl font-bold text-white">Recent Answers</h2>
                         <Button
                             variant="outline"
                             onClick={() => router.push('/history')}
@@ -233,14 +233,14 @@ export default function DashboardPage() {
 
             {/* Empty State */}
             {stats && stats.totalAnswers === 0 && (
-                <Card className="p-12 bg-white/10 backdrop-blur-lg border-white/20 text-center">
-                    <h3 className="text-2xl font-bold text-white mb-2">Get Started!</h3>
-                    <p className="text-slate-300 mb-6">
+                <Card className="p-6 md:p-12 bg-white/10 backdrop-blur-lg border-white/20 text-center">
+                    <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Get Started!</h3>
+                    <p className="text-sm md:text-base text-slate-300 mb-6">
                         Upload your first answer to receive AI-powered evaluation and improve your UPSC preparation
                     </p>
                     <Button
                         onClick={() => router.push('/upload')}
-                        className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 px-8 py-6 text-lg"
+                        className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 px-6 md:px-8 py-4 md:py-6 text-base md:text-lg"
                     >
                         <Upload className="w-5 h-5 mr-2" />
                         Upload Your First Answer

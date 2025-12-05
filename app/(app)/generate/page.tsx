@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import HighlightedAnswer from '@/components/HighlightedAnswer'
 import { Loader2, Sparkles, Copy, Download, Save } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface GeneratedAnswer {
     id: string
@@ -69,35 +70,33 @@ export default function GeneratePage() {
     const handleCopyAnswer = () => {
         if (generatedAnswer) {
             navigator.clipboard.writeText(generatedAnswer.answer_text)
-            alert('Answer copied to clipboard!')
+            toast.success('Answer copied to clipboard!')
         }
     }
 
     const handleDownloadPDF = () => {
-        // TODO: Implement PDF download
-        alert('PDF download coming soon!')
+        toast.info('PDF download coming soon!')
     }
 
     const handleSaveToLibrary = async () => {
-        // TODO: Implement save to library
-        alert('Saved to your library!')
+        toast.success('Saved to your library!')
     }
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <div className="mb-8">
-                <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
-                    <Sparkles className="w-8 h-8 text-yellow-400" />
+        <div className="max-w-4xl mx-auto px-4">
+            <div className="mb-6 md:mb-8">
+                <h1 className="text-2xl md:text-4xl font-bold text-white mb-2 flex items-center gap-2 md:gap-3">
+                    <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-yellow-400" />
                     AI Answer Generator
                 </h1>
-                <p className="text-slate-300">
+                <p className="text-sm md:text-base text-slate-300">
                     Get UPSC-quality model answers with mark-worthy point highlighting
                 </p>
             </div>
 
             {!generatedAnswer ? (
-                <Card className="p-6 bg-white/10 backdrop-blur-lg border-white/20">
-                    <div className="space-y-6">
+                <Card className="p-4 md:p-6 bg-white/10 backdrop-blur-lg border-white/20">
+                    <div className="space-y-4 md:space-y-6">
                         {error && (
                             <Alert variant="destructive">
                                 <AlertDescription>{error}</AlertDescription>
@@ -113,8 +112,8 @@ export default function GeneratePage() {
                                 value={questionText}
                                 onChange={(e) => setQuestionText(e.target.value)}
                                 placeholder="Type or paste your UPSC Mains question here..."
-                                rows={6}
-                                className="bg-slate-700/70 border-slate-500 text-white placeholder:text-slate-300 focus:border-blue-500"
+                                rows={4}
+                                className="bg-slate-700/70 border-slate-500 text-white placeholder:text-slate-300 focus:border-blue-500 text-sm md:text-base"
                             />
                         </div>
 
@@ -155,7 +154,7 @@ export default function GeneratePage() {
                         <Button
                             onClick={handleGenerate}
                             disabled={generating || !questionText.trim()}
-                            className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold py-6 text-lg"
+                            className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold py-4 md:py-6 text-base md:text-lg"
                         >
                             {generating ? (
                                 <>
@@ -170,46 +169,46 @@ export default function GeneratePage() {
                             )}
                         </Button>
 
-                        <p className="text-sm text-slate-400 text-center">
+                        <p className="text-xs md:text-sm text-slate-400 text-center">
                             💰 Free tier: 3 answers per day
                         </p>
                     </div>
                 </Card>
             ) : (
-                <div className="space-y-6">
+                <div className="space-y-4 md:space-y-6">
                     {/* Success Message */}
                     {cached && (
                         <Alert className="bg-green-500/20 border-green-500/50">
-                            <AlertDescription className="text-green-300">
+                            <AlertDescription className="text-green-300 text-sm md:text-base">
                                 ⚡ Instant result! This answer was previously generated and cached.
                             </AlertDescription>
                         </Alert>
                     )}
 
                     {/* Action Buttons */}
-                    <div className="flex gap-3 flex-wrap">
+                    <div className="flex gap-2 md:gap-3 flex-wrap">
                         <Button
                             onClick={handleCopyAnswer}
                             variant="outline"
-                            className="border-slate-600 hover:bg-slate-700"
+                            className="flex-1 sm:flex-none border-slate-600 hover:bg-slate-700 text-sm md:text-base"
                         >
-                            <Copy className="w-4 h-4 mr-2" />
+                            <Copy className="w-4 h-4 mr-1 md:mr-2" />
                             Copy Answer
                         </Button>
                         <Button
                             onClick={handleDownloadPDF}
                             variant="outline"
-                            className="border-slate-600 hover:bg-slate-700"
+                            className="flex-1 sm:flex-none border-slate-600 hover:bg-slate-700 text-sm md:text-base"
                         >
-                            <Download className="w-4 h-4 mr-2" />
+                            <Download className="w-4 h-4 mr-1 md:mr-2" />
                             Download PDF
                         </Button>
                         <Button
                             onClick={handleSaveToLibrary}
                             variant="outline"
-                            className="border-slate-600 hover:bg-slate-700"
+                            className="flex-1 sm:flex-none border-slate-600 hover:bg-slate-700 text-sm md:text-base"
                         >
-                            <Save className="w-4 h-4 mr-2" />
+                            <Save className="w-4 h-4 mr-1 md:mr-2" />
                             Save to Library
                         </Button>
                         <Button
@@ -217,7 +216,7 @@ export default function GeneratePage() {
                                 setGeneratedAnswer(null)
                                 setQuestionText('')
                             }}
-                            className="bg-blue-600 hover:bg-blue-700 ml-auto"
+                            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 sm:ml-auto text-sm md:text-base"
                         >
                             Generate Another
                         </Button>

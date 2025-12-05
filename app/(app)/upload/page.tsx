@@ -204,16 +204,16 @@ export default function UploadPage() {
     }
 
     return (
-        <div className="max-w-3xl mx-auto">
-            <div className="mb-8">
-                <h1 className="text-4xl font-bold text-white mb-2">Upload Answer</h1>
-                <p className="text-slate-300">
+        <div className="max-w-3xl mx-auto px-4">
+            <div className="mb-6 md:mb-8">
+                <h1 className="text-2xl md:text-4xl font-bold text-white mb-2">Upload Answer</h1>
+                <p className="text-sm md:text-base text-slate-300">
                     Upload your handwritten answer and get instant AI evaluation
                 </p>
             </div>
 
-            <Card className="p-6 bg-white/10 backdrop-blur-lg border-white/20">
-                <div className="space-y-6">
+            <Card className="p-4 md:p-6 bg-white/10 backdrop-blur-lg border-white/20">
+                <div className="space-y-4 md:space-y-6">
                     {error && (
                         <Alert variant="destructive">
                             <AlertDescription>{error}</AlertDescription>
@@ -222,25 +222,25 @@ export default function UploadPage() {
 
                     {/* Question Input Section */}
                     <div>
-                        <h3 className="text-lg font-semibold text-white mb-4">Step 1: Provide Question</h3>
+                        <h3 className="text-base md:text-lg font-semibold text-white mb-3 md:mb-4">Step 1: Provide Question</h3>
 
                         <Tabs value={questionSource} onValueChange={(v) => setQuestionSource(v as QuestionSource)}>
-                            <TabsList className="grid w-full grid-cols-3 bg-slate-700/50 p-1">
+                            <TabsList className="grid w-full grid-cols-3 bg-slate-700/50 p-1 h-auto">
                                 <TabsTrigger
                                     value="manual"
-                                    className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-slate-200 data-[state=inactive]:hover:bg-slate-600/50"
+                                    className="text-xs md:text-sm data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-slate-200 data-[state=inactive]:hover:bg-slate-600/50"
                                 >
                                     Manual Entry
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="bank"
-                                    className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-slate-200 data-[state=inactive]:hover:bg-slate-600/50"
+                                    className="text-xs md:text-sm data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-slate-200 data-[state=inactive]:hover:bg-slate-600/50"
                                 >
                                     Question Bank
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="ocr"
-                                    className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-slate-200 data-[state=inactive]:hover:bg-slate-600/50"
+                                    className="text-xs md:text-sm data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-slate-200 data-[state=inactive]:hover:bg-slate-600/50"
                                 >
                                     Auto Extract
                                 </TabsTrigger>
@@ -253,7 +253,7 @@ export default function UploadPage() {
                                     onChange={(e) => setManualQuestion(e.target.value)}
                                     placeholder="Type or paste the UPSC question here..."
                                     rows={4}
-                                    className="bg-slate-700/70 border-slate-500 text-white placeholder:text-slate-300 focus:border-blue-500"
+                                    className="bg-slate-700/70 border-slate-500 text-white placeholder:text-slate-300 focus:border-blue-500 text-sm md:text-base"
                                 />
                             </TabsContent>
 
@@ -304,7 +304,7 @@ export default function UploadPage() {
 
                     {/* Image Upload Section */}
                     <div>
-                        <h3 className="text-lg font-semibold text-white mb-4">Step 2: Upload Answer Image</h3>
+                        <h3 className="text-base md:text-lg font-semibold text-white mb-3 md:mb-4">Step 2: Upload Answer Image</h3>
                         <ImageUpload
                             onImageSelect={handleImageSelect}
                             preview={preview}
@@ -326,7 +326,7 @@ export default function UploadPage() {
                     <Button
                         onClick={handleSubmit}
                         disabled={uploading || !selectedFile}
-                        className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold py-6 text-lg"
+                        className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold py-4 md:py-6 text-base md:text-lg"
                     >
                         {uploading ? (
                             <>

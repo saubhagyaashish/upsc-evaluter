@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { generateUPSCAnswer } from '@/lib/openai/answerGenerator'
+import { getAIProvider } from '@/lib/ai/providerFactory'
 
 export async function POST(request: NextRequest) {
     try {
@@ -71,7 +71,8 @@ export async function POST(request: NextRequest) {
             generatedAnswerId = cachedAnswer.id
         } else {
             // Generate new answer with AI
-            const answer = await generateUPSCAnswer(
+            const aiProvider = getAIProvider()
+            const answer = await aiProvider.generateAnswer(
                 questionText,
                 category || 'GS1',
                 wordLimit || 250
