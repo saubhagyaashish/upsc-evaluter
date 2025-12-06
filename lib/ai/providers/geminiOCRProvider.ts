@@ -46,7 +46,18 @@ export class GeminiOCRProvider implements OCRProvider {
             const imageBuffer = await imageResponse.arrayBuffer()
             const base64Image = Buffer.from(imageBuffer).toString('base64')
 
-            const prompt = `Extract all the handwritten text from this answer sheet. Preserve the structure and formatting as much as possible. Only return the extracted text, nothing else.`
+            const prompt = `Extract all the handwritten text from this answer sheet image and format it beautifully using markdown.
+
+Formatting guidelines:
+- Use **bold** for important points and headings
+- Use proper headings (##, ###) for different sections
+- Use bullet points (-) or numbered lists where appropriate
+- Preserve the logical structure and flow of the answer
+- Keep paragraphs properly separated with blank lines
+- DO NOT wrap the text in code blocks (no \`\`\` marks)
+- Format it as readable prose with proper markdown elements
+
+Return ONLY the formatted text, nothing else.`
 
             const result = await this.model.generateContent([
                 prompt,

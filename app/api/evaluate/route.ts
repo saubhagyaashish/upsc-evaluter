@@ -35,23 +35,38 @@ export async function POST(request: NextRequest) {
             imageUrls = [answer.image_url]
         }
 
+        console.log('==================== EVALUATION START ====================')
+        console.log('Answer ID:', answerId)
+        console.log('Number of pages:', imageUrls.length)
+        console.log('Image URLs:', imageUrls)
+
         // Extract text from image(s) using OCR provider (OpenAI or Gemini)
         const ocrProvider = getOCRProvider()
+        console.log('OCR Provider:', ocrProvider.constructor.name)
         let extractedText = ''
 
         if (imageUrls.length === 1) {
             // Single page
+            console.log('Processing single page...')
             extractedText = await ocrProvider.extractTextFromImage(imageUrls[0])
         } else {
             // Multiple pages - extract and combine with page markers
+            console.log('Processing multiple pages...')
             const pageTexts = await Promise.all(
                 imageUrls.map((url, index) =>
                     ocrProvider.extractTextFromImage(url)
-                        .then(text => `## 📄 Page ${index + 1}\n\n${text}`)
+                        .then(text => {
+                            console.log(`Page ${index + 1} OCR complete (${text.length} chars)`)
+                            return `## 📄 Page ${index + 1}\n\n${text}`
+                        })
                 )
             )
             extractedText = pageTexts.join('\n\n---\n\n')
         }
+
+        console.log('\n========== EXTRACTED TEXT (Total: ' + extractedText.length + ' chars) ==========')
+        console.log(extractedText)
+        console.log('========== END EXTRACTED TEXT ==========\n')
 
         // Update answer with extracted text
         await supabase
@@ -75,11 +90,23 @@ export async function POST(request: NextRequest) {
 
         // Evaluate the answer using AI provider (OpenAI or Gemini)
         const aiProvider = getAIProvider()
+        console.log('AI Provider:', aiProvider.constructor.name)
+        console.log('Question:', answer.question_text)
+        console.log('Word limit:', wordLimit)
+        console.log('\nCalling AI for evaluation...')
+
         const evaluation = await aiProvider.evaluateAnswer(
             answer.question_text,
             extractedText,
             wordLimit
         )
+
+        console.log('\n========== AI EVALUATION RESULT ==========')
+        console.log('Score:', evaluation.score)
+        console.log('Structure Feedback:', evaluation.structureFeedback)
+        console.log('Points Missed:', evaluation.pointsMissed)
+        console.log('Suggestions:', evaluation.suggestions)
+        console.log('========== END AI RESULT ==========')
 
         // Save evaluation to database
         const { data: evaluationData, error: evalError } = await supabase
@@ -97,6 +124,9 @@ export async function POST(request: NextRequest) {
         if (evalError) {
             return NextResponse.json({ error: 'Failed to save evaluation' }, { status: 500 })
         }
+
+        console.log('\nEvaluation saved to database successfully!')
+        console.log('==================== EVALUATION END ====================\n')
 
         return NextResponse.json({
             success: true,

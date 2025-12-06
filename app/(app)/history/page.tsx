@@ -105,6 +105,16 @@ export default function HistoryPage() {
         return text.substring(0, maxLength) + '...'
     }
 
+    // Parse image URL (handle both single URL and JSON array for multi-page)
+    const getFirstImageUrl = (imageUrl: string): string => {
+        try {
+            const parsed = JSON.parse(imageUrl)
+            return Array.isArray(parsed) ? parsed[0] : imageUrl
+        } catch {
+            return imageUrl
+        }
+    }
+
     if (loading) {
         return (
             <div className="space-y-4">
@@ -161,6 +171,7 @@ export default function HistoryPage() {
                                 setActive={() => setSwipedId(answer.id)}
                                 resetActive={() => setSwipedId(null)}
                                 truncateText={truncateText}
+                                getFirstImageUrl={getFirstImageUrl}
                             />
                         )
                     })}
@@ -180,9 +191,10 @@ interface SwipeableCardProps {
     setActive: () => void
     resetActive: () => void
     truncateText: (text: string, maxLength: number) => string
+    getFirstImageUrl: (imageUrl: string) => string
 }
 
-function SwipeableCard({ answer, latestEval, onDelete, onClick, isActive, setActive, resetActive, truncateText }: SwipeableCardProps) {
+function SwipeableCard({ answer, latestEval, onDelete, onClick, isActive, setActive, resetActive, truncateText, getFirstImageUrl }: SwipeableCardProps) {
     const [swipeOffset, setSwipeOffset] = useState(0)
 
     const handlers = useSwipeable({
@@ -234,7 +246,7 @@ function SwipeableCard({ answer, latestEval, onDelete, onClick, isActive, setAct
                         {/* Thumbnail */}
                         <div className="flex-shrink-0 w-full sm:w-auto">
                             <img
-                                src={answer.image_url}
+                                src={getFirstImageUrl(answer.image_url)}
                                 alt="Answer thumbnail"
                                 className="w-full sm:w-24 md:w-32 h-48 sm:h-24 md:h-32 object-cover rounded-lg border-2 border-blue-500"
                             />
