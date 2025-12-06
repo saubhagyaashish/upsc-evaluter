@@ -271,11 +271,13 @@ function SwipeableCard({ answer, latestEval, onDelete, onClick, isActive, setAct
                                 )}
                             </div>
 
-                            {/* Extracted text preview */}
+                            {/* Extracted text preview with markdown */}
                             {answer.extracted_text && (
-                                <p className="text-slate-400 text-xs md:text-sm line-clamp-2">
-                                    {answer.extracted_text}
-                                </p>
+                                <div className="text-slate-400 text-xs md:text-sm line-clamp-3 prose prose-invert prose-xs max-w-none prose-p:m-0 prose-p:leading-tight prose-ul:m-0 prose-li:m-0">
+                                    <ReactMarkdown>
+                                        {answer.extracted_text.substring(0, 200) + '...'}
+                                    </ReactMarkdown>
+                                </div>
                             )}
                         </div>
                     </div>

@@ -43,14 +43,14 @@ export async function POST(request: NextRequest) {
             // Single page
             extractedText = await ocrProvider.extractTextFromImage(imageUrls[0])
         } else {
-            // Multiple pages - extract and combine
+            // Multiple pages - extract and combine with page markers
             const pageTexts = await Promise.all(
                 imageUrls.map((url, index) =>
                     ocrProvider.extractTextFromImage(url)
-                        .then(text => `--- PAGE ${index + 1} ---\n\n${text}`)
+                        .then(text => `## 📄 Page ${index + 1}\n\n${text}`)
                 )
             )
-            extractedText = pageTexts.join('\n\n')
+            extractedText = pageTexts.join('\n\n---\n\n')
         }
 
         // Update answer with extracted text

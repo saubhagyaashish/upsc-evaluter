@@ -2,6 +2,8 @@
 
 import { Card } from '@/components/ui/card'
 import MarkWorthyBadge from './MarkWorthyBadge'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 interface BodyPoint {
     heading: string
@@ -68,7 +70,9 @@ export default function HighlightedAnswer({
                         marksValue={1}
                     />
                 </div>
-                <p className="text-slate-200 leading-relaxed whitespace-pre-wrap">{introduction}</p>
+                <div className="prose prose-invert max-w-none prose-p:text-slate-200 prose-p:leading-relaxed prose-ul:text-slate-200 prose-li:marker:text-blue-400">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{introduction}</ReactMarkdown>
+                </div>
             </Card>
 
             {/* Body Points */}
@@ -85,7 +89,9 @@ export default function HighlightedAnswer({
                                     marksValue={index === 0 ? 2 : 1.5}
                                 />
                             </div>
-                            <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">{point.content}</div>
+                            <div className="prose prose-invert max-w-none prose-p:text-slate-200 prose-p:leading-relaxed prose-ul:text-slate-200 prose-li:marker:text-blue-400 prose-strong:text-white">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{point.content}</ReactMarkdown>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -101,7 +107,9 @@ export default function HighlightedAnswer({
                         marksValue={1.5}
                     />
                 </div>
-                <p className="text-slate-200 leading-relaxed whitespace-pre-wrap">{conclusion}</p>
+                <div className="prose prose-invert max-w-none prose-p:text-slate-200 prose-p:leading-relaxed prose-ul:text-slate-200 prose-li:marker:text-blue-400">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{conclusion}</ReactMarkdown>
+                </div>
             </Card>
 
             {/* Marking Legend */}

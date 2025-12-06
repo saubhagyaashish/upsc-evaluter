@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Database } from '@/lib/types/database.types'
 import { ArrowLeft, RefreshCw } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 type Answer = Database['public']['Tables']['answers']['Row']
 type Evaluation = Database['public']['Tables']['evaluations']['Row']
@@ -68,6 +70,16 @@ export default function EvaluationPage() {
         return 'bg-red-500'
     }
 
+    // Parse image URLs for multi-page display
+    const getImageUrls = (imageUrl: string): string[] => {
+        try {
+            const parsed = JSON.parse(imageUrl)
+            return Array.isArray(parsed) ? parsed : [imageUrl]
+        } catch {
+            return [imageUrl]
+        }
+    }
+
     if (loading) {
         return (
             <div className="max-w-4xl mx-auto space-y-6">
@@ -91,9 +103,10 @@ export default function EvaluationPage() {
     }
 
     const { answer, evaluation } = data
+    const imageUrls = getImageUrls(answer.image_url)
 
     return (
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto px-4">
             <div className="mb-6 flex items-center justify-between">
                 <Button
                     variant="ghost"
@@ -139,22 +152,45 @@ export default function EvaluationPage() {
                 </div>
             </Card>
 
-            {/* Answer Image */}
+            {/* Answer Images */}
             <Card className="p-6 bg-white/10 backdrop-blur-lg border-white/20 mb-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Your Answer</h3>
-                <img
-                    src={answer.image_url}
-                    alt="Answer sheet"
-                    className="w-full rounded-lg border-2 border-purple-500"
-                />
+                <h3 className="text-lg font-semibold text-white mb-4">
+                    Your Answer {imageUrls.length > 1 && `(${imageUrls.length} pages)`}
+                </h3>
+                {imageUrls.length === 1 ? (
+                    <img
+                        src={imageUrls[0]}
+                        alt="Answer sheet"
+                        className="w-full rounded-lg border-2 border-purple-500"
+                    />
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {imageUrls.map((url, index) => (
+                            <div key={index} className="relative">
+                                <Badge className="absolute top-2 left-2 bg-blue-600 text-white z-10">
+                                    Page {index + 1}
+                                </Badge>
+                                <img
+                                    src={url}
+                                    alt={`Answer sheet page ${index + 1}`}
+                                    className="w-full rounded-lg border-2 border-purple-500"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                )}
             </Card>
 
-            {/* Extracted Text */}
+            {/* Extracted Text with ReactMarkdown */}
             {answer.extracted_text && (
                 <Card className="p-6 bg-white/10 backdrop-blur-lg border-white/20 mb-6">
                     <h3 className="text-lg font-semibold text-white mb-4">Extracted Text</h3>
-                    <div className="bg-slate-900/50 p-4 rounded-lg">
-                        <p className="text-slate-300 whitespace-pre-wrap">{answer.extracted_text}</p>
+                    <div className="bg-slate-900/50 p-6 rounded-lg overflow-auto">
+                        <div className="prose prose-invert max-w-none prose-headings:text-blue-400 prose-h2:text-xl prose-h2:font-bold prose-h2:mb-4 prose-h2:mt-6 prose-h2:border-b prose-h2:border-blue-500/30 prose-h2:pb-2 prose-p:text-slate-300 prose-p:leading-relaxed prose-strong:text-white prose-strong:font-semibold prose-ul:text-slate-300 prose-li:marker:text-blue-400 prose-hr:border-purple-500/30 prose-hr:my-6 prose-code:text-cyan-400 prose-code:bg-slate-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-slate-800 prose-pre:border prose-pre:border-slate-700">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {answer.extracted_text}
+                            </ReactMarkdown>
+                        </div>
                     </div>
                 </Card>
             )}
