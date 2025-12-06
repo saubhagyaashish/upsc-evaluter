@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { extractQuestionFromImage } from '@/lib/openai/vision'
+import { getOCRProvider } from '@/lib/ai/ocrProviderFactory'
 
 export async function POST(request: NextRequest) {
     try {
@@ -9,7 +9,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Image URL required' }, { status: 400 })
         }
 
-        const question = await extractQuestionFromImage(imageUrl)
+        const ocrProvider = getOCRProvider()
+        const question = await ocrProvider.extractQuestionFromImage(imageUrl)
 
         return NextResponse.json({ question })
     } catch (error: any) {

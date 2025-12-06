@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { extractTextFromImage } from '@/lib/openai/vision'
-import { evaluateAnswer } from '@/lib/openai/evaluator'
+import { getOCRProvider } from '@/lib/ai/ocrProviderFactory'
+import { getAIProvider } from '@/lib/ai/providerFactory'
 
 export async function POST(request: NextRequest) {
     try {
@@ -24,8 +24,34 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Answer not found' }, { status: 404 })
         }
 
-        // Extract text from image using OpenAI Vision
-        const extractedText = await extractTextFromImage(answer.image_url)
+        // Parse image URLs (single string or JSON array for multi-page)
+        let imageUrls: string[] = []
+        try {
+            // Try to parse as JSON array first (multi-page)
+            const parsed = JSON.parse(answer.image_url)
+            imageUrls = Array.isArray(parsed) ? parsed : [answer.image_url]
+        } catch {
+            // If parsing fails, it's a single URL (backward compatibility)
+            imageUrls = [answer.image_url]
+        }
+
+        // Extract text from image(s) using OCR provider (OpenAI or Gemini)
+        const ocrProvider = getOCRProvider()
+        let extractedText = ''
+
+        if (imageUrls.length === 1) {
+            // Single page
+            extractedText = await ocrProvider.extractTextFromImage(imageUrls[0])
+        } else {
+            // Multiple pages - extract and combine
+            const pageTexts = await Promise.all(
+                imageUrls.map((url, index) =>
+                    ocrProvider.extractTextFromImage(url)
+                        .then(text => `--- PAGE ${index + 1} ---\n\n${text}`)
+                )
+            )
+            extractedText = pageTexts.join('\n\n')
+        }
 
         // Update answer with extracted text
         await supabase
@@ -47,8 +73,9 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // Evaluate the answer
-        const evaluation = await evaluateAnswer(
+        // Evaluate the answer using AI provider (OpenAI or Gemini)
+        const aiProvider = getAIProvider()
+        const evaluation = await aiProvider.evaluateAnswer(
             answer.question_text,
             extractedText,
             wordLimit

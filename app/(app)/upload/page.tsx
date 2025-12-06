@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import ImageUpload from '@/components/ImageUpload'
+import PageCard from '@/components/PageCard'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
@@ -12,14 +12,24 @@ import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { createClient } from '@/lib/supabase/client'
 import { generateUniqueFileName } from '@/lib/utils/imageValidation'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Upload, FileImage } from 'lucide-react'
 
 type QuestionSource = 'manual' | 'bank' | 'ocr'
 
+interface PageFile {
+    id: string
+    file: File
+    preview: string
+    order: number
+}
+
 export default function UploadPage() {
     const router = useRouter()
-    const [selectedFile, setSelectedFile] = useState<File | null>(null)
-    const [preview, setPreview] = useState<string | null>(null)
+
+    // Multi-page state
+    const [pages, setPages] = useState<PageFile[]>([])
+    const maxPages = 5
+
     const [questionSource, setQuestionSource] = useState<QuestionSource>('manual')
 
     // Manual entry
@@ -36,22 +46,86 @@ export default function UploadPage() {
     const [progress, setProgress] = useState(0)
     const [error, setError] = useState<string | null>(null)
 
-    const handleImageSelect = (file: File) => {
-        setSelectedFile(file)
-        const reader = new FileReader()
-        reader.onloadend = () => {
-            setPreview(reader.result as string)
+    // Drag state for reordering
+    const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+
+    const handleFilesSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || [])
+
+        if (pages.length + files.length > maxPages) {
+            setError(`Maximum ${maxPages} pages allowed`)
+            return
         }
-        reader.readAsDataURL(file)
+
+        // Validate each file
+        const validFiles: PageFile[] = []
+        for (const file of files) {
+            // Check file type
+            if (!file.type.startsWith('image/')) {
+                setError(`${file.name} is not an image`)
+                continue
+            }
+
+            // Check file size (5MB per file)
+            if (file.size > 5 * 1024 * 1024) {
+                setError(`${file.name} is larger than 5MB`)
+                continue
+            }
+
+            // Create preview
+            const reader = new FileReader()
+            const id = `${Date.now()}-${Math.random()}`
+
+            reader.onloadend = () => {
+                const newPage: PageFile = {
+                    id,
+                    file,
+                    preview: reader.result as string,
+                    order: pages.length + validFiles.length
+                }
+
+                setPages(prev => [...prev, newPage])
+            }
+            reader.readAsDataURL(file)
+
+            validFiles.push({} as PageFile) // Placeholder
+        }
+
+        setError(null)
     }
 
-    const handleClearPreview = () => {
-        setSelectedFile(null)
-        setPreview(null)
+    const handleRemovePage = (id: string) => {
+        setPages(prev => prev.filter(p => p.id !== id))
+    }
+
+    const handleDragStart = (e: React.DragEvent, index: number) => {
+        setDraggedIndex(index)
+        e.dataTransfer.effectAllowed = 'move'
+    }
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'move'
+    }
+
+    const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+        e.preventDefault()
+
+        if (draggedIndex === null || draggedIndex === dropIndex) return
+
+        const newPages = [...pages]
+        const [draggedPage] = newPages.splice(draggedIndex, 1)
+        newPages.splice(dropIndex, 0, draggedPage)
+
+        setPages(newPages)
+        setDraggedIndex(null)
     }
 
     const handleExtractQuestion = async () => {
-        if (!selectedFile) return
+        if (pages.length === 0) {
+            setError('Please upload at least one page')
+            return
+        }
 
         setExtractingQuestion(true)
         setError(null)
@@ -62,11 +136,12 @@ export default function UploadPage() {
 
             if (!user) throw new Error('Not authenticated')
 
-            // Upload image temporarily for OCR
-            const fileName = generateUniqueFileName(user.id, selectedFile.name)
+            // Upload first page temporarily for OCR
+            const firstPage = pages[0]
+            const fileName = generateUniqueFileName(user.id, firstPage.file.name)
             const { data: uploadData, error: uploadError } = await supabase.storage
                 .from('answer-images')
-                .upload(fileName, selectedFile)
+                .upload(fileName, firstPage.file)
 
             if (uploadError) throw uploadError
 
@@ -94,8 +169,8 @@ export default function UploadPage() {
     }
 
     const handleSubmit = async () => {
-        if (!selectedFile) {
-            setError('Please select an image')
+        if (pages.length === 0) {
+            setError('Please upload at least one page')
             return
         }
 
@@ -115,7 +190,6 @@ export default function UploadPage() {
                 return
             }
             questionId = selectedQuestionId
-            // We'll fetch the question text from the database
         } else if (questionSource === 'ocr') {
             if (!ocrQuestion.trim()) {
                 setError('Please extract the question first')
@@ -136,34 +210,46 @@ export default function UploadPage() {
 
             setProgress(30)
 
-            // Upload image to Supabase Storage
-            const fileName = generateUniqueFileName(user.id, selectedFile.name)
-            const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('answer-images')
-                .upload(fileName, selectedFile)
+            // Upload all pages to Supabase Storage
+            const imageUrls: string[] = []
+            const uploadPromises = pages.map(async (page, index) => {
+                const fileName = generateUniqueFileName(user.id, `page${index + 1}_${page.file.name}`)
+                const { error: uploadError } = await supabase.storage
+                    .from('answer-images')
+                    .upload(fileName, page.file)
 
-            if (uploadError) throw uploadError
+                if (uploadError) throw uploadError
+
+                // Get public URL
+                const { data: { publicUrl } } = supabase.storage
+                    .from('answer-images')
+                    .getPublicUrl(fileName)
+
+                return publicUrl
+            })
+
+            const urls = await Promise.all(uploadPromises)
+            imageUrls.push(...urls)
 
             setProgress(50)
 
-            // Get public URL
-            const { data: { publicUrl } } = supabase.storage
-                .from('answer-images')
-                .getPublicUrl(fileName)
-
-            setProgress(60)
-
-            // If question bank, fetch question text
+            // Get question text if using question bank
             if (questionSource === 'bank' && questionId) {
-                const { data: questionData, error: questionError } = await supabase
+                const { data: questionData } = await supabase
                     .from('questions')
                     .select('question_text')
                     .eq('id', questionId)
                     .single()
 
-                if (questionError) throw questionError
-                questionText = questionData.question_text
+                if (questionData) {
+                    questionText = questionData.question_text
+                }
             }
+
+            setProgress(70)
+
+            // Store as JSON array (for multi-page) or single URL (for backward compatibility)
+            const imageUrlField = imageUrls.length === 1 ? imageUrls[0] : JSON.stringify(imageUrls)
 
             // Save answer to database
             const { data: answerData, error: answerError } = await supabase
@@ -172,15 +258,15 @@ export default function UploadPage() {
                     user_id: user.id,
                     question_id: questionId,
                     question_text: questionText,
-                    question_source: questionSource,
-                    image_url: publicUrl,
+                    question_source: questionId ? 'Question Bank' : 'Manual Entry',
+                    image_url: imageUrlField,
                 })
                 .select()
                 .single()
 
             if (answerError) throw answerError
 
-            setProgress(80)
+            setProgress(90)
 
             // Trigger evaluation
             const evalResponse = await fetch('/api/evaluate', {
@@ -189,156 +275,172 @@ export default function UploadPage() {
                 body: JSON.stringify({ answerId: answerData.id }),
             })
 
-            if (!evalResponse.ok) throw new Error('Evaluation failed')
+            if (!evalResponse.ok) throw new Error('Failed to evaluate answer')
 
             setProgress(100)
 
-            // Redirect to evaluation result
+            // Redirect to evaluation page
             router.push(`/evaluation/${answerData.id}`)
         } catch (err: any) {
+            console.error('Upload error:', err)
             setError(err.message || 'Failed to upload answer')
-            setProgress(0)
         } finally {
             setUploading(false)
         }
     }
 
     return (
-        <div className="max-w-3xl mx-auto px-4">
+        <div className="px-4 max-w-6xl mx-auto">
             <div className="mb-6 md:mb-8">
                 <h1 className="text-2xl md:text-4xl font-bold text-white mb-2">Upload Answer</h1>
                 <p className="text-sm md:text-base text-slate-300">
-                    Upload your handwritten answer and get instant AI evaluation
+                    Upload your answer sheet(s) for AI-powered evaluation
                 </p>
             </div>
 
-            <Card className="p-4 md:p-6 bg-white/10 backdrop-blur-lg border-white/20">
-                <div className="space-y-4 md:space-y-6">
-                    {error && (
-                        <Alert variant="destructive">
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
+            {error && (
+                <Alert className="mb-6 bg-red-500/10 border-red-500">
+                    <AlertDescription className="text-red-400">{error}</AlertDescription>
+                </Alert>
+            )}
+
+            <div className="space-y-6">
+                {/* Multi-Page Upload Section */}
+                <Card className="p-4 md:p-6 bg-white/10 backdrop-blur-lg border-white/20">
+                    <h2 className="text-lg md:text-xl font-semibold text-white mb-4">
+                        Answer Sheets {pages.length > 0 && `(${pages.length}/${maxPages})`}
+                    </h2>
+
+                    {/* Upload Area */}
+                    {pages.length < maxPages && (
+                        <label className="block mb-6">
+                            <div className="border-2 border-dashed border-blue-500/50 hover:border-blue-500 rounded-lg p-8 text-center cursor-pointer transition-all bg-slate-900/50 hover:bg-slate-900/70">
+                                <Upload className="w-12 h-12 mx-auto mb-4 text-blue-400" />
+                                <p className="text-white font-semibold mb-2">
+                                    {pages.length === 0 ? 'Upload Answer Sheets' : 'Add More Pages'}
+                                </p>
+                                <p className="text-sm text-slate-400 mb-4">
+                                    Drag & drop or click to browse (Max {maxPages} pages, 5MB each)
+                                </p>
+                                <input
+                                    type="file"
+                                    multiple
+                                    accept="image/*"
+                                    onChange={handleFilesSelect}
+                                    className="hidden"
+                                    disabled={uploading}
+                                />
+                            </div>
+                        </label>
                     )}
 
-                    {/* Question Input Section */}
-                    <div>
-                        <h3 className="text-base md:text-lg font-semibold text-white mb-3 md:mb-4">Step 1: Provide Question</h3>
-
-                        <Tabs value={questionSource} onValueChange={(v) => setQuestionSource(v as QuestionSource)}>
-                            <TabsList className="grid w-full grid-cols-3 bg-slate-700/50 p-1 h-auto">
-                                <TabsTrigger
-                                    value="manual"
-                                    className="text-xs md:text-sm data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-slate-200 data-[state=inactive]:hover:bg-slate-600/50"
-                                >
-                                    Manual Entry
-                                </TabsTrigger>
-                                <TabsTrigger
-                                    value="bank"
-                                    className="text-xs md:text-sm data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-slate-200 data-[state=inactive]:hover:bg-slate-600/50"
-                                >
-                                    Question Bank
-                                </TabsTrigger>
-                                <TabsTrigger
-                                    value="ocr"
-                                    className="text-xs md:text-sm data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-slate-200 data-[state=inactive]:hover:bg-slate-600/50"
-                                >
-                                    Auto Extract
-                                </TabsTrigger>
-                            </TabsList>
-
-                            <TabsContent value="manual" className="space-y-2 mt-4">
-                                <label className="text-sm font-medium text-white">Enter the question you answered</label>
-                                <Textarea
-                                    value={manualQuestion}
-                                    onChange={(e) => setManualQuestion(e.target.value)}
-                                    placeholder="Type or paste the UPSC question here..."
-                                    rows={4}
-                                    className="bg-slate-700/70 border-slate-500 text-white placeholder:text-slate-300 focus:border-blue-500 text-sm md:text-base"
+                    {/* Pages Grid */}
+                    {pages.length > 0 && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {pages.map((page, index) => (
+                                <PageCard
+                                    key={page.id}
+                                    page={page}
+                                    index={index}
+                                    totalPages={pages.length}
+                                    onRemove={handleRemovePage}
+                                    onDragStart={handleDragStart}
+                                    onDragOver={handleDragOver}
+                                    onDrop={handleDrop}
                                 />
-                            </TabsContent>
-
-                            <TabsContent value="bank" className="space-y-2 mt-4">
-                                <label className="text-sm font-medium text-white">Select a question from the bank</label>
-                                <Input
-                                    type="text"
-                                    placeholder="Search questions... (Coming soon)"
-                                    disabled
-                                    className="bg-slate-700/70 border-slate-500 text-white placeholder:text-slate-300"
-                                />
-                                <p className="text-xs text-slate-400">
-                                    Question bank will be populated with UPSC previous year questions
-                                </p>
-                            </TabsContent>
-
-                            <TabsContent value="ocr" className="space-y-2 mt-4">
-                                <label className="text-sm font-medium text-white">Extract question from answer sheet</label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        value={ocrQuestion}
-                                        onChange={(e) => setOcrQuestion(e.target.value)}
-                                        placeholder="Click 'Extract Question' to auto-detect from image"
-                                        readOnly
-                                        className="bg-slate-700/70 border-slate-500 text-white placeholder:text-slate-300"
-                                    />
-                                    <Button
-                                        onClick={handleExtractQuestion}
-                                        disabled={!selectedFile || extractingQuestion}
-                                        className="bg-blue-600 hover:bg-blue-700"
-                                    >
-                                        {extractingQuestion ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                Extracting...
-                                            </>
-                                        ) : (
-                                            'Extract Question'
-                                        )}
-                                    </Button>
-                                </div>
-                                <p className="text-xs text-slate-400">
-                                    Upload an image first, then click to extract the question
-                                </p>
-                            </TabsContent>
-                        </Tabs>
-                    </div>
-
-                    {/* Image Upload Section */}
-                    <div>
-                        <h3 className="text-base md:text-lg font-semibold text-white mb-3 md:mb-4">Step 2: Upload Answer Image</h3>
-                        <ImageUpload
-                            onImageSelect={handleImageSelect}
-                            preview={preview}
-                            onClearPreview={handleClearPreview}
-                        />
-                    </div>
-
-                    {/* Progress Bar */}
-                    {uploading && (
-                        <div className="space-y-2">
-                            <Progress value={progress} className="w-full" />
-                            <p className="text-sm text-slate-300 text-center">
-                                {progress < 50 ? 'Uploading image...' : progress < 80 ? 'Processing...' : 'Evaluating answer...'}
-                            </p>
+                            ))}
                         </div>
                     )}
+                </Card>
 
-                    {/* Submit Button */}
-                    <Button
-                        onClick={handleSubmit}
-                        disabled={uploading || !selectedFile}
-                        className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold py-4 md:py-6 text-base md:text-lg"
-                    >
-                        {uploading ? (
-                            <>
-                                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                Processing...
-                            </>
-                        ) : (
-                            'Upload & Evaluate'
-                        )}
-                    </Button>
-                </div>
-            </Card>
+                {/* Question Input Section */}
+                <Card className="p-4 md:p-6 bg-white/10 backdrop-blur-lg border-white/20">
+                    <h2 className="text-lg md:text-xl font-semibold text-white mb-4">Question</h2>
+
+                    <Tabs value={questionSource} onValueChange={(v) => setQuestionSource(v as QuestionSource)}>
+                        <TabsList className="grid grid-cols-3 h-auto mb-4">
+                            <TabsTrigger value="manual" className="text-xs md:text-sm">Manual Entry</TabsTrigger>
+                            <TabsTrigger value="bank" className="text-xs md:text-sm">Question Bank</TabsTrigger>
+                            <TabsTrigger value="ocr" className="text-xs md:text-sm">Extract from Image</TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="manual">
+                            <Textarea
+                                placeholder="Enter the question text..."
+                                value={manualQuestion}
+                                onChange={(e) => setManualQuestion(e.target.value)}
+                                rows={4}
+                                className="bg-slate-900/50 border-slate-700 text-white placeholder:text-slate-500 text-sm md:text-base"
+                            />
+                        </TabsContent>
+
+                        <TabsContent value="bank">
+                            <Input
+                                placeholder="Select from question bank (coming soon)"
+                                disabled
+                                className="bg-slate-900/50 border-slate-700 text-white"
+                            />
+                        </TabsContent>
+
+                        <TabsContent value="ocr">
+                            <div className="space-y-4">
+                                <Button
+                                    onClick={handleExtractQuestion}
+                                    disabled={pages.length === 0 || extractingQuestion}
+                                    className="w-full md:w-auto bg-purple-600 hover:bg-purple-700"
+                                >
+                                    {extractingQuestion ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            Extracting...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FileImage className="w-4 h-4 mr-2" />
+                                            Extract Question from First Page
+                                        </>
+                                    )}
+                                </Button>
+                                <Textarea
+                                    placeholder="Extracted question will appear here..."
+                                    value={ocrQuestion}
+                                    onChange={(e) => setOcrQuestion(e.target.value)}
+                                    rows={4}
+                                    className="bg-slate-900/50 border-slate-700 text-white placeholder:text-slate-500 text-sm md:text-base"
+                                />
+                            </div>
+                        </TabsContent>
+                    </Tabs>
+                </Card>
+
+                {/* Submit Section */}
+                {uploading && (
+                    <Card className="p-6 bg-white/10 backdrop-blur-lg border-white/20">
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-white font-semibold">Uploading...</span>
+                                <span className="text-slate-400">{progress}%</span>
+                            </div>
+                            <Progress value={progress} className="h-2" />
+                        </div>
+                    </Card>
+                )}
+
+                <Button
+                    onClick={handleSubmit}
+                    disabled={pages.length === 0 || uploading}
+                    className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white py-4 md:py-6 text-base md:text-lg font-semibold"
+                >
+                    {uploading ? (
+                        <>
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                            Processing ({progress}%)...
+                        </>
+                    ) : (
+                        `Submit ${pages.length} Page${pages.length !== 1 ? 's' : ''} for Evaluation`
+                    )}
+                </Button>
+            </div>
         </div>
     )
 }

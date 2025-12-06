@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import type { AIProvider, GeneratedAnswer, BodyPoint, MarkWorthyPoint } from '../aiProvider'
+import type { AIProvider, GeneratedAnswer, BodyPoint, MarkWorthyPoint, EvaluationResult } from '../aiProvider'
 
 export class GeminiProvider implements AIProvider {
     private client: GoogleGenerativeAI
@@ -54,6 +54,54 @@ export class GeminiProvider implements AIProvider {
         }
     }
 
+    async evaluateAnswer(
+        questionText: string,
+        answerText: string,
+        wordLimit: number = 250
+    ): Promise<EvaluationResult> {
+        try {
+            const prompt = `You are an expert UPSC Mains examiner with years of experience. Evaluate answers based on UPSC standards.
+          
+Evaluation Criteria:
+1. Content Accuracy and Depth (30%) - Factual correctness, depth of analysis, use of examples
+2. Structure (25%) - Clear Introduction, well-organized Body, strong Conclusion
+3. Keywords and Technical Terms (20%) - Appropriate use of UPSC-relevant terminology
+4. Length Appropriateness (15%) - Word limit adherence (target: ${wordLimit} words)
+5. Balanced Argumentation (10%) - Multiple perspectives, balanced view
+
+Question: ${questionText}
+
+Answer: ${answerText}
+
+Please evaluate this UPSC Mains answer and provide detailed feedback.
+
+Your response MUST be a valid JSON object with this exact structure:
+{
+  "score": <number between 0-10>,
+  "structureFeedback": "<detailed feedback on structure>",
+  "pointsMissed": ["<point 1>", "<point 2>", ...],
+  "suggestions": "<specific actionable suggestions for improvement>"
+}`
+
+            const result = await this.model.generateContent(prompt)
+            const response = await result.response
+            const text = response.text()
+
+            // Parse the JSON response
+            const evaluation = JSON.parse(text)
+
+            return {
+                score: evaluation.score || 0,
+                structureFeedback: evaluation.structureFeedback || '',
+                pointsMissed: evaluation.pointsMissed || [],
+                suggestions: evaluation.suggestions || '',
+            }
+        } catch (error) {
+            console.error('Error evaluating answer with Gemini:', error)
+            throw new Error('Failed to evaluate answer')
+        }
+    }
+
     private buildPrompt(questionText: string, category: string, wordLimit: number): string {
         return `You are an expert UPSC Mains examiner and topper who writes model answers.
 
@@ -91,7 +139,7 @@ RESPONSE FORMAT (JSON):
 
 Question: ${questionText}
 
-Generate a UPSC model answer with clear marking guidance. Be specific about WHY each point earns marks. Return ONLY valid JSON, nothing else.`
+Generate a UPSC model answer with clear marking guidance. Be specific about WHY each point earns marks.`
     }
 
     private getCategoryGuidelines(category: string): string {

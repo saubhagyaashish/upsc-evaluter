@@ -1,5 +1,3 @@
-// Common interface and types for AI providers
-
 export interface MarkWorthyPoint {
     position: number
     type: 'MUST-WRITE' | 'HIGH-VALUE' | 'GOOD-TO-HAVE' | 'DATA'
@@ -11,7 +9,7 @@ export interface MarkWorthyPoint {
 export interface BodyPoint {
     heading: string
     content: string
-    mark_worthy: 'MUST-WRITE' | 'HIGH-VALUE' | 'GOOD-TO-HAVE' | 'DATA'
+    mark_worthy: string
     explanation: string
 }
 
@@ -24,10 +22,24 @@ export interface GeneratedAnswer {
     mark_worthy_points: MarkWorthyPoint[]
 }
 
+export interface EvaluationResult {
+    score: number
+    structureFeedback: string
+    pointsMissed: string[]
+    suggestions: string
+}
+
+// AI Provider Interface - implemented by OpenAI, Gemini, etc.
 export interface AIProvider {
     generateAnswer(
         questionText: string,
-        category: string,
-        wordLimit: number
+        category?: string,
+        wordLimit?: number
     ): Promise<GeneratedAnswer>
+
+    evaluateAnswer(
+        questionText: string,
+        answerText: string,
+        wordLimit?: number
+    ): Promise<EvaluationResult>
 }
