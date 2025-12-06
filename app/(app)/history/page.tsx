@@ -11,6 +11,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { useSwipeable } from 'react-swipeable'
 import { toast } from 'sonner'
 import { Trash2 } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
 
 type Answer = Database['public']['Tables']['answers']['Row']
 type Evaluation = Database['public']['Tables']['evaluations']['Row']
