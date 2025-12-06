@@ -258,7 +258,7 @@ export default function UploadPage() {
                     user_id: user.id,
                     question_id: questionId,
                     question_text: questionText,
-                    question_source: questionId ? 'Question Bank' : 'Manual Entry',
+                    question_source: questionId ? 'bank' : questionSource,
                     image_url: imageUrlField,
                 })
                 .select()
